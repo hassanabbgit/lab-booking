@@ -418,6 +418,10 @@ function format_date($date, $withTime = false)
     if (empty($date) || $date === '0000-00-00' || $date === '0000-00-00 00:00:00') {
         return '-';
     }
+    $parsed = date_create_from_format('Y-m-d', $date);
+    if ($parsed !== false && $parsed->format('Y-m-d') === $date) {
+        return $withTime ? $parsed->format('d M Y, H:i') : $parsed->format('d M Y');
+    }
     $ts = strtotime($date);
     if ($ts === false) {
         return '-';

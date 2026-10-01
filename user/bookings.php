@@ -44,8 +44,11 @@ $bookings = db_all(
 // administrator's queue cannot drift apart.
 $labels = array('all' => 'All');
 
-foreach (booking_statuses() as $status) {
-    $labels[$status] = booking_status_label($status);
+/* $status is the filter this page was asked for, so it must not be reused as a
+   loop variable here: doing so leaves it holding the last status in the
+   lifecycle, which silently marked that chip active on every page. */
+foreach (booking_statuses() as $state) {
+    $labels[$state] = booking_status_label($state);
 }
 
 $counts = array();
@@ -71,11 +74,17 @@ layout_start(array('title' => 'My Bookings', 'active' => 'bookings'));
 
 <?php render_flashes(); ?>
 
+<?php
+/* One key for the chip that should be lit, worked out once. Comparing inside
+   the loop meant the answer depended on whether $status happened to be blank,
+   which is exactly the case that went wrong. */
+$activeKey = ($status === '') ? 'all' : $status;
+?>
 <ul class="nav nav-pills mb-3 flex-wrap">
     <?php foreach ($labels as $key => $label): ?>
         <?php $isAll = ($key === 'all'); ?>
         <li class="nav-item">
-            <a class="nav-link <?php echo $status === $key || ($isAll && $status === '') ? 'active' : ''; ?>"
+            <a class="nav-link <?php echo $key === $activeKey ? 'active' : ''; ?>"
                href="<?php echo e(url('user/bookings.php' . ($isAll ? '' : '?status=' . $key))); ?>">
                 <?php echo e($label); ?>
                 <span class="badge bg-light text-dark ms-1"><?php echo (int) $counts[$key]; ?></span>

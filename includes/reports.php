@@ -18,6 +18,14 @@ if (!defined('REPORT_MIN_RANGE_DAYS')) {
     define('REPORT_MIN_RANGE_DAYS', 1);
 }
 
+/* The chart and the daily table build one row per day in the period, so an
+   unbounded range is a request to allocate millions of rows. Three years covers
+   everything the seeded data could plausibly reach and keeps the work bounded
+   for a hand-typed query string. */
+if (!defined('REPORT_MAX_RANGE_DAYS')) {
+    define('REPORT_MAX_RANGE_DAYS', 1095);
+}
+
 /**
  * Read a date from a query string, falling back to something sensible.
  *
@@ -44,6 +52,57 @@ function report_date($key, $default)
 }
 
 /**
+ * The number of days from one 'Y-m-d' to another, inclusive of both ends.
+ *
+ * Calendar arithmetic, not timestamps. XAMPP's PHP is a 32-bit build, so
+ * strtotime() returns false for anything before 1970 or after 2038, which would
+ * turn a legitimate far-past or far-future date into a span of one day.
+ *
+ * @param  string $from
+ * @param  string $to
+ * @return int
+ */
+function report_days_between($from, $to)
+{
+    $a = date_create_from_format('Y-m-d', $from);
+    $b = date_create_from_format('Y-m-d', $to);
+
+    if ($a === false || $b === false) {
+        return 0;
+    }
+
+    $diff = $a->diff($b);
+
+    /* days is negative when $to is before $from, and it excludes the start date,
+       so +1 makes it the count of days actually covered. */
+    $days = $diff->days;
+
+    if ($days === false) {
+        $days = ($diff->y * 365) + ($diff->m * 30) + $diff->d;
+    }
+
+    return (int) $days + 1;
+}
+
+/**
+ * A 'Y-m-d' a given number of days after another.
+ *
+ * @param  string $from
+ * @param  int    $days
+ * @return string
+ */
+function report_date_add($from, $days)
+{
+    $date = date_create_from_format('Y-m-d', $from);
+
+    if ($date === false) {
+        return $from;
+    }
+
+    return $date->modify('+' . (int) $days . ' days')->format('Y-m-d');
+}
+
+/**
  * Resolve the requested period, keeping from <= to.
  *
  * @param  string $fromRaw
@@ -65,12 +124,24 @@ function report_range($fromRaw, $toRaw)
         $to   = $swap;
     }
 
-    $days = (int) floor((strtotime($to) - strtotime($from)) / 86400) + 1;
+    $days = report_days_between($from, $to);
     if ($days < REPORT_MIN_RANGE_DAYS) {
         $days = REPORT_MIN_RANGE_DAYS;
     }
 
-    return array('from' => $from, 'to' => $to, 'days' => $days);
+    /* A period wider than REPORT_MAX_RANGE_DAYS is trimmed from the far end, so
+       the start date the report was asked for is kept and the recent end is
+       what gets dropped. 'trimmed' says so on the page, because silently
+       returning less than was asked for would be worse than showing it. */
+    $trimmed = false;
+
+    if ($days > REPORT_MAX_RANGE_DAYS) {
+        $to      = report_date_add($from, REPORT_MAX_RANGE_DAYS - 1);
+        $days    = REPORT_MAX_RANGE_DAYS;
+        $trimmed = true;
+    }
+
+    return array('from' => $from, 'to' => $to, 'days' => $days, 'trimmed' => $trimmed);
 }
 
 /**
@@ -286,11 +357,16 @@ function report_daily_counts($from, $to)
     }
 
     $out  = array();
-    $days = (int) floor((strtotime($to) - strtotime($from)) / 86400) + 1;
+    $days = report_days_between($from, $to);
+
+    /* The date is stepped by calendar, not by adding 86400 seconds to a
+       timestamp. A timestamp runs out of range on a 32-bit build for anything
+       before 1970, and a DST shift would otherwise move the walk by an hour. */
+    $date = $from;
 
     for ($i = 0; $i < $days; $i++) {
-        $date = date('Y-m-d', strtotime($from) + $i * 86400);
         $out[] = array('date' => $date, 'count' => isset($rows[$date]) ? $rows[$date] : 0);
+        $date  = report_date_add($date, 1);
     }
 
     return $out;

@@ -63,6 +63,17 @@ project, demonstrating client-server architecture and LAN-based access.
 
 6. Open **<http://localhost/lab-booking/>**.
 
+If you imported an **older** `database/schema.sql` into an existing database,
+apply the profile picture column as well:
+
+```
+C:\xampp\mysql\bin\mysql.exe -u root < database\03_profile_avatar.sql
+```
+
+It is safe to re-run, so it can be applied to a current database without
+changing anything. `schema.sql` already contains the column, so a fresh install
+does not need it.
+
 ### Demo accounts
 
 | Role | Email | Password |
@@ -127,7 +138,8 @@ lab-booking/
 │   └── database.php       db() -> shared PDO handle
 ├── public/            Web-servable folder for generated files
 │   ├── index.php          redirects to the landing page
-│   ├── uploads/           (reserved) user uploads
+│   ├── uploads/           user uploads, with .htaccess denying execution
+│   │   └── avatars/       profile pictures, created at runtime
 │   └── exports/           (reserved) CSV / PDF report exports
 ├── assets/
 │   ├── css/style.css      custom styles layered on Bootstrap
@@ -147,6 +159,9 @@ lab-booking/
 │   ├── footer.php        footer, scripts, closing tags
 │   ├── booking_rules.php  availability, validation, conflicts, insert, status changes
 │   ├── laboratories.php   laboratory rules: validation, add, edit, status, delete
+│   ├── time_slots.php     booking window rules: validation, add, edit, guarded delete
+│   ├── reports.php        report queries: counts, usage, activity, CSV rows
+│   ├── profile.php        self-service: details, password, picture, activity
 │   └── users.php         user rules: validation, add, edit, role, status, password
 ├── admin/             Administrator pages
 │   ├── index.php          dashboard counters
@@ -155,25 +170,33 @@ lab-booking/
 │   ├── booking.php        one full record, with its audit trail
 │   ├── laboratories.php   add, edit and change status
 │   ├── laboratory.php     one laboratory, with guarded delete
+│   ├── time-slots.php     booking windows, with usage counts and guarded delete
+│   ├── reports.php        period reports, with CSV exports
+│   ├── profile.php        own profile self-service
 │   ├── users.php          all accounts: search, filters, totals, add
 │   └── user.php           one account: details, role, status, password
 ├── user/              Student pages
 │   ├── book.php           availability and the request form
 │   ├── bookings.php       own bookings, by status
 │   ├── booking.php        own booking, with self-cancel
-│   └── history.php        sessions that have happened
+│   ├── history.php        sessions that have happened
+│   └── profile.php        own profile self-service
 ├── auth/              login, logout, register
 ├── database/
 │   ├── .htaccess          blocks direct web access
 │   ├── schema.sql         full DDL
 │   ├── 02_restrict_deletion.sql  ALTERs that apply RESTRICT to an existing DB
+│   ├── 03_profile_avatar.sql    adds users.avatar to an existing DB
 │   ├── seed.php           demo data seeder (command line only)
 │   └── tests/
 │       ├── relationships.test.sql  non-destructive constraint proof
 │       ├── rules.test.php         booking rules engine checks (command line)
 │       ├── laboratories.test.php  laboratory management checks (command line)
+│       ├── time_slots.test.php    booking window checks (command line)
 │       ├── booking_status.test.php  booking lifecycle checks (command line)
-│       └── users.test.php         user management checks (command line)
+│       ├── users.test.php         user management checks (command line)
+│       ├── reports.test.php       reporting checks (command line)
+│       └── profile.test.php       profile self-service checks (command line)
 ├── docs/
 │   └── DATA_DICTIONARY.md column-by-column schema reference
 ├── .htaccess          blocks .sql/.dotfiles, disables directory listing
@@ -313,8 +336,28 @@ damage your data, and it ends by confirming nothing was left behind.
 * **Live account checks.** `sync_user_state()` re-reads the account on every
   guarded request, so deactivating, deleting or re-roleing someone takes effect
   on their very next click instead of whenever their session happens to expire.
-* **Audit trail.** Sign-ins, failed logins and administrative actions are
-  written to `activity_logs`.
+* **Self-service cannot escalate.** The profile forms post no `role` or
+  `status`, and `profile_details_input_from_post()` fills both in from the
+  stored record. `user_update()` never writes those two columns at all, so this
+  is not a UI convention. A student's student number is pinned the same way,
+  because it is a registered identity rather than a contact detail.
+* **Password changes require the current password**, and the session id is
+  regenerated afterwards, so a token captured beforehand cannot ride on the
+  authenticated session. The session is kept, not ended.
+* **Uploads are re-encoded, never copied.** A profile picture is decoded with
+  GD and written back as a fresh 256×256 JPEG, so whatever was in the file
+  cannot survive into the served image. The type is decided by `getimagesize()`,
+  not `$_FILES['type']`, which is attacker-controlled. `is_uploaded_file()` is
+  checked *before* the file is opened, so a hand-crafted path pointing at a
+  server file is never read, let alone decoded. The stored path is always
+  derived from the account id and re-validated against a strict pattern before
+  being rendered, and `public/uploads/.htaccess` denies execution as a second
+  layer.
+* **Bounded work per request.** The reports period is capped at
+  `REPORT_MAX_RANGE_DAYS` and the page says when it trimmed, because the daily
+  chart and table build one row per day.
+* **Audit trail.** Sign-ins, failed logins, administrative actions and profile
+  changes are written to `activity_logs`.
 * **`config/`, `includes/` and `database/` are not web accessible.**
 * **Strict SQL mode** on every connection, so invalid enum values fail loudly
   instead of being silently coerced.
@@ -363,13 +406,13 @@ out of your own machine, but they matter for a real deployment:
 | 8 | Change a user's role, with self-change and last-admin guards | **Complete** |
 | 8 | Deactivate and reactivate an account | **Complete** |
 | 8 | Reset another user's password | **Complete** |
-| - | Reports | Routed and guarded, pending |
-| - | Time slot management | Read-only list, editing pending |
-| - | Password self-service | Routed and guarded, pending |
-
-Modules marked "routed and guarded" load the correct layout, pass access
-control and are listed in the sidebar, but show a placeholder instead of their
-CRUD screens.
+| 9 | Time slot management (add, edit, guarded delete, usage counts) | **Complete** |
+| 9 | Reports: period filter, status split, approval rate, daily chart | **Complete** |
+| 9 | Reports: laboratory usage, slot demand, student activity, CSV exports | **Complete** |
+| 10 | Profile self-service: edit own details (name, email, phone) | **Complete** |
+| 10 | Password self-service: change own password, current password required | **Complete** |
+| 10 | Profile picture: upload, replace and remove, cropped to a square | **Complete** |
+| 10 | Profile page: booking summary figures above the forms | **Complete** |
 
 ### The booking lifecycle
 
@@ -446,7 +489,7 @@ Every add, edit, role change, status change and password reset is written to
 
 Everything below was checked against a running Apache + MariaDB:
 
-* 46 PHP files pass `php -l` with no syntax errors.
+* 52 PHP files pass `php -l` with no syntax errors.
 * All 43 page requests return HTTP 200 for an authorised role with no PHP
   warnings, notices or deprecations in the body or in `error.log`.
 * `/config/config.php`, `/config/database.php`, `/includes/*.php` and
@@ -708,6 +751,131 @@ has nothing to do with the code under test.
 
 Both suites leave the database exactly as they found it: 12 accounts, 2 active
 administrators, and no `zz-user-%` rows or stray audit entries.
+
+### Time slot management
+
+`database/tests/time_slots.test.php` runs 65 checks over
+`includes/time_slots.php`, working only on rows it created itself:
+
+* Validation of start, end and label, including an end that is not after the
+  start, and a window that runs past midnight.
+* The seeded overlapping windows are **not** rejected. Overlap is a legitimate
+  configuration choice, so the rule is left to the person managing the slots.
+* Duplicate labels are refused, while saving a slot under its own label is not.
+* **The containment count, and the delete guard built on it.** A booking is
+  counted when the slot is *contained* in it, not only when the two are
+  identical, so a window that merely overlaps an existing one still reads as
+  in use. Deleting such a window is refused with the count and an explanation.
+* `time_slot_delete()` refuses a window with any booking inside it, and a slot
+  nobody booked is removed cleanly.
+
+An end-to-end pass then drives the real administrator page over HTTP, covering 37
+checks:
+
+* The list, its in-use flags, and the add and edit forms.
+* Deleting an unused window works; deleting one that holds a booking is refused
+  and the row survives, with the button replaced by a disabled lock.
+* Only a slot with no bookings inside it offers a delete control at all.
+
+### Reports
+
+`database/tests/reports.test.php` runs 49 checks over `includes/reports.php`:
+
+* The date range, including a reversed range being swapped rather than returning
+  nothing, and a malformed date falling back to the default.
+* The status split sums to the total, the approval rate agrees with the counts,
+  and the average lead time is non-negative.
+* Laboratory usage, slot demand and student activity all sum back to the total
+  number of bookings in the period.
+* **"Students who booked" is `COUNT(DISTINCT user_id)`, not a row count.** It
+  was wrong at first: the figure came from the 25-row student activity list, so
+  it silently capped at the display limit while the table said there were more.
+* **The period is bounded.** `REPORT_MAX_RANGE_DAYS` (three years) caps the
+  range, trimming the far end rather than the start, and the page says so. The
+  daily chart and table build one row per day, so an unbounded range is a
+  request to allocate millions of rows.
+* Day counting uses calendar arithmetic, not timestamps. XAMPP's PHP is a
+  **32-bit** build, so `strtotime()` returns `false` for anything before 1970
+  or after 2038, which would silently collapse a legitimate far-past date to a
+  one-day period. `format_date()` has the same guard.
+
+An end-to-end pass then drives the real page over HTTP, covering 56 checks:
+
+* The cards, the chart, and every table agree with each other for a given
+  period, and all of them change together when the dates change.
+* Each CSV export downloads with the right `Content-Type` and filename, and its
+  rows match the table it came from.
+* An empty period shows an empty state rather than a zero-filled table.
+* A year-spanning request returns promptly and says the period was trimmed.
+
+### Profile self-service
+
+`database/tests/profile.test.php` runs 64 checks over `includes/profile.php`, on a
+throwaway account whose picture is written to its own slot and removed by a
+shutdown handler:
+
+* The avatar path rules: a tampered `avatar` column does not become a URL, a
+  missing or broken upload is refused, and the size limit is named in the
+  refusal. `is_uploaded_file()` runs **before** the file is opened, so a
+  hand-crafted path pointing at a server file is never read, let alone decoded.
+* The image type rules, split into `profile_avatar_inspect()` so they can be
+  tested on their own: a PHP script is not an image, a real GIF and PNG are
+  accepted with their dimensions read, and an absurdly large image is refused.
+* `getimagesize()` decides the type, not `$_FILES['type']`, which is whatever the
+  browser claimed.
+* Password changes need the current password, and a refusal for a short
+  password, a mismatched repeat or reuse of the current one writes **nothing** to
+  the activity log. A valid change stores a hash, never the password, and is
+  logged once.
+* **The self-service form cannot escalate.** `profile_details_input_from_post()`
+  fills `role` and `status` in from the stored record, `user_update()` never
+  writes those two columns, and a write handed a forged array directly still
+  leaves them alone.
+* A student's forged student number is ignored, because it is a registered
+  identity rather than a contact detail. An administrator's own staff number
+  stays editable. The field is rendered `disabled` with no `name`, so it cannot
+  be posted at all, and the value is pinned server-side rather than merely
+  hidden.
+* An account still cannot be deactivated through the profile page.
+* The shared validation rules still refuse an empty or short name, a malformed
+  email or phone, and an email already in use. A collision is checked against a
+  **real** seeded address, since a made-up one would never collide with anything;
+  keeping your own address is not a collision.
+* The seeded system is untouched: still 2 active administrators, and no picture
+  files left behind.
+
+An end-to-end pass then drives both real profile pages over HTTP as both roles,
+covering 113 checks. This is the only pass that can satisfy `is_uploaded_file()`,
+so it is where the upload accept path is actually proven:
+
+* A genuine multipart GIF upload is accepted, written, re-encoded as a square
+  JPEG of the expected size, recorded in the `users` row as the path this code
+  writes, and served back from the page.
+* A replacement upload of a **tall** image comes out square, which is the crop
+  and not a resize.
+* A PHP script sent as a real upload with a `.jpg` name and a JPEG content type
+  is refused, the page says it is not an image, and the **existing** picture and
+  its `users` row are left alone.
+* Removal deletes the file, clears the column, and takes the button away.
+* Details save, with a forged `role`, `status` and student number all ignored; a
+  duplicate email and a too-short name are both refused without writing.
+* A POST with a forged CSRF token changes nothing.
+* A wrong current password does not redirect, the old password keeps working, a
+  mismatched repeat is refused, and a valid change makes the new password sign in
+  and the old one fail. **The session that made the change stays signed in**,
+  which is the point of regenerating the id rather than ending the session.
+* A student is redirected away from the administrator page and vice versa, and
+  neither page offers a role or status control.
+* A seeded password cannot be changed without the current one, and a refused
+  seeded change leaves the real hash untouched. A shutdown handler restores the
+  seeded passwords even after a fatal error.
+* The three panels that were cut from the page are asserted absent, the three
+  that stayed are asserted present, and the password change is still checked in
+  the `activity_logs` table rather than on the page.
+
+Visual checks at 1400px and 480px found no horizontal overflow, no image without
+alt text and no label pointing at a missing field on either page, and the
+password button's `data-confirm` does fire the browser dialog.
 
 ---
 

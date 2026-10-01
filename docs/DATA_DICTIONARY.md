@@ -79,6 +79,7 @@ the decision itself is preserved.
 | `status` | ENUM('active','inactive') | no | 'active' | soft-delete / suspension |
 | `student_no` | VARCHAR(50) | yes | NULL | UNIQUE `uq_users_student_no`; staff number for admins |
 | `phone` | VARCHAR(30) | yes | NULL | |
+| `avatar` | VARCHAR(191) | yes | NULL | project-relative path, e.g. `public/uploads/avatars/12.jpg`; NULL means no picture and the page shows initials |
 | `last_login_at` | DATETIME | yes | NULL | set on every successful sign-in |
 | `created_at` | DATETIME | no | CURRENT_TIMESTAMP | |
 | `updated_at` | DATETIME | no | CURRENT_TIMESTAMP | auto-updates |
@@ -94,6 +95,24 @@ Indexes: `uq_users_email` (UNIQUE), `uq_users_student_no` (UNIQUE),
 > `student_no` blank do not collide with one another. This is also why a blank
 > optional value is stored as `NULL` rather than `''`: MariaDB treats a unique
 > index as satisfied by more than one `''`, but not by more than one `NULL`.
+
+#### `avatar`
+
+`avatar` was added after the initial schema by `database/03_profile_avatar.sql`,
+which is safe to re-run. `schema.sql` already includes it, so only a database
+imported from an older `schema.sql` needs the migration.
+
+The column holds a path, never user input. `includes/profile.php` always writes
+`public/uploads/avatars/<user id>.jpg` and always reads it back through
+`profile_avatar_url()`, which matches the stored value against
+`#^public/uploads/avatars/[0-9]+\.jpg$#` and confirms the file still exists
+before producing a URL. The value is rendered into an `src` attribute, so a row
+edited by hand must not be able to turn into a broken image or an unexpected
+path.
+
+The picture is decoded with GD and written back as a fresh 256×256 JPEG, so the
+file on disk is always something this code produced rather than something that
+was uploaded.
 
 #### Rules the column types cannot enforce
 
@@ -111,6 +130,27 @@ these in `user_validate()` before writing anything:
 | `email` unique | the `UNIQUE` index guarantees it, but it is checked first so the message is readable |
 | `student_no` unique, if given | as above |
 | password at least 8 characters | `VARCHAR(255)` happily stores `'a'` |
+
+#### What self-service may change
+
+`admin/user.php` and the two profile pages are different jobs. An administrator
+editing somebody else's account can change details, role, status and password.
+A user on their own profile page can change name, email, phone and password, and
+nothing else.
+
+That is enforced in three places rather than one, because the form alone is only
+a suggestion:
+
+* the profile forms post no `role` or `status` field at all;
+* `profile_details_input_from_post()` fills both in from the stored record, so
+  `user_validate()` has something to check;
+* `user_update()` never writes those two columns, so even a hand-crafted POST
+  or a direct call to the function cannot change them.
+
+A student's `student_no` is pinned the same way. It is a registered identity
+rather than a contact detail, so a wrong one is corrected by an administrator on
+the Users page; an administrator's own staff number stays editable, because it is
+theirs to keep.
 
 #### Normalisation
 

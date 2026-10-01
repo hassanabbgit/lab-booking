@@ -33,6 +33,7 @@ if (!defined('APP_BOOTSTRAPPED')) {
     require_once __DIR__ . '/users.php';
     require_once __DIR__ . '/time_slots.php';
     require_once __DIR__ . '/reports.php';
+    require_once __DIR__ . '/profile.php';
     require_once __DIR__ . '/alerts.php';
     require_once __DIR__ . '/layout.php';
 

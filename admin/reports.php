@@ -183,6 +183,17 @@ layout_start(array('title' => 'Reports', 'active' => 'reports'));
             which is <?php echo (int) $range['days']; ?>
             day<?php echo $range['days'] === 1 ? '' : 's'; ?>.
         </div>
+
+        <?php if ($range['trimmed']): ?>
+            <div class="alert alert-warning mt-3 mb-0 py-2 small">
+                <i class="bi bi-exclamation-triangle me-1"></i>
+                A period longer than <?php echo (int) (REPORT_MAX_RANGE_DAYS / 365); ?>
+                years is not reported in full. The end date was moved back to
+                <strong><?php echo e(format_date($to)); ?></strong> so the
+                daily chart stays a readable size. Choose a shorter period, or
+                export the parts separately.
+            </div>
+        <?php endif; ?>
     </div>
 </form>
 

@@ -47,6 +47,44 @@ ok($r['days'] >= REPORT_MIN_RANGE_DAYS, 'a bad from still yields a positive span
 $r = report_range('2026-02-31', '2026-03-01');
 ok($r['from'] <= $r['to'], 'an impossible date is rejected');
 
+$r = report_range('2026-01-01', '2026-01-31');
+ok($r['trimmed'] === false, 'a short period is not trimmed');
+ok($r['days'] === 31, 'and its length is left alone');
+
+section('report_range is bounded');
+
+/* The daily chart and table build one row per day, so an unbounded range is a
+   request to allocate millions of rows. Pinned because REPORT_MAX_RANGE_DAYS is
+   the only thing standing between a hand-typed query string and a timeout. */
+$r = report_range('0001-01-01', '9999-12-31');
+ok($r['days'] === REPORT_MAX_RANGE_DAYS, 'an enormous range is capped at the maximum');
+ok($r['trimmed'] === true, 'and says that it was trimmed');
+ok($r['from'] === '0001-01-01', 'the start date asked for is kept');
+ok($r['to'] < '9999-12-31', 'the far end is what gets moved');
+ok($r['from'] <= $r['to'], 'and the result is still a usable range');
+
+/* A range exactly on the limit must be left alone, or the cap would quietly
+   affect a period that was legitimately requested in full. */
+$exactFrom = '2020-01-01';
+$exactTo   = date('Y-m-d', strtotime($exactFrom) + (REPORT_MAX_RANGE_DAYS - 1) * 86400);
+$r = report_range($exactFrom, $exactTo);
+ok($r['days'] === REPORT_MAX_RANGE_DAYS, 'a range exactly on the limit is kept whole');
+ok($r['trimmed'] === false, 'and is not reported as trimmed');
+ok($r['to'] === $exactTo, 'with the end date untouched');
+
+$oneMore = date('Y-m-d', strtotime($exactFrom) + REPORT_MAX_RANGE_DAYS * 86400);
+$r = report_range($exactFrom, $oneMore);
+ok($r['trimmed'] === true, 'one day past the limit is trimmed');
+ok($r['days'] === REPORT_MAX_RANGE_DAYS, 'back down to the maximum');
+ok($r['to'] === $exactTo, 'and the end lands on the last allowed day');
+
+/* The trimmed range has to be the one that is actually reported, or the page
+   and its CSV exports would disagree about the period. */
+$daily = report_daily_counts($r['from'], $r['to']);
+ok(count($daily) === REPORT_MAX_RANGE_DAYS, 'the daily table matches the trimmed range exactly');
+ok($daily[0]['date'] === $r['from'], 'starting on the first day');
+ok($daily[count($daily) - 1]['date'] === $r['to'], 'and ending on the last');
+
 section('report_date');
 
 ok(report_date('from', '2026-09-30') === '2026-09-30', 'empty query string returns the default');

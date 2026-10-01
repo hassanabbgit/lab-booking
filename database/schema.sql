@@ -41,6 +41,12 @@ CREATE TABLE `users` (
   `status`        ENUM('active','inactive') NOT NULL DEFAULT 'active',
   `student_no`    VARCHAR(50)   DEFAULT NULL,
   `phone`         VARCHAR(30)   DEFAULT NULL,
+  -- Profile picture, stored as a path relative to the project root, for
+  -- example public/uploads/avatars/12.jpg. NULL means the account has no
+  -- picture and the profile page shows its initials instead. The value is
+  -- written only by includes/profile.php, which always derives it from the
+  -- account id, so it can never be used to point somewhere else.
+  `avatar`        VARCHAR(191)  DEFAULT NULL,
   `last_login_at` DATETIME      DEFAULT NULL,
   `created_at`    DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at`    DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
