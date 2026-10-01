@@ -1,0 +1,512 @@
+/* ==========================================================================
+   Computer Laboratory Booking System
+   Custom styles layered on top of Bootstrap 5.3
+   ========================================================================== */
+
+:root {
+    --clbs-primary:   #1d4ed8;
+    --clbs-primary-d: #1e3a8a;
+    --clbs-ink:       #0f172a;
+    --clbs-muted:     #64748b;
+    --clbs-line:      #e2e8f0;
+    --clbs-bg:        #f1f5f9;
+    --clbs-sidebar:   #0f172a;
+    --clbs-sidebar-tx:#dbe4f0;
+    /* The inactive icon sits in the same blue family as the inactive label
+       (Bootstrap #0d6efd). The literal brand value is only 3.60:1 on the card
+       and 3.03:1 on hover, which leaves no margin, so this is a slightly
+       lighter step of the same hue at 5.40:1. Icons are graphical objects and
+       are held to 3:1, not the 4.5:1 that text needs. */
+    --clbs-sidebar-ic:#4d94ff;
+    --clbs-sidebar-ic-h:#bfdbfe;
+    /* The focus ring has its own token. It shared the icon colour before, and
+       dropping it to 3.60:1 would have made the keyboard focus indicator far
+       harder to see; a focus indicator should be the clearest thing on screen. */
+    --clbs-sidebar-focus:#dbeafe;
+    --clbs-sidebar-rail:#60a5fa;
+    --clbs-radius:    12px;
+    --clbs-shadow:    0 1px 3px rgba(15, 23, 42, .08);
+}
+
+body {
+    background-color: var(--clbs-bg);
+    color: var(--clbs-ink);
+    font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* ==========================================================================
+   Top navigation
+   ========================================================================== */
+
+.app-navbar {
+    background: #fff;
+    border-bottom: 1px solid var(--clbs-line);
+    box-shadow: 0 1px 2px rgba(15, 23, 42, .04);
+    min-height: 60px;
+}
+
+.brand-mark {
+    display: grid;
+    place-items: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, var(--clbs-primary), #3b82f6);
+    color: #fff;
+    font-size: 1.15rem;
+    flex-shrink: 0;
+}
+
+.brand-text { line-height: 1.15; }
+.brand-text strong { display: block; font-size: 1.02rem; color: var(--clbs-ink); }
+.brand-text small  { display: block; font-size: .70rem; color: var(--clbs-muted); }
+
+.nav-server {
+    font-size: .78rem;
+    color: var(--clbs-muted);
+    background: #f8fafc;
+    border: 1px solid var(--clbs-line);
+    border-radius: 999px;
+    padding: .25rem .7rem;
+    white-space: nowrap;
+}
+
+.nav-icon {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    color: var(--clbs-muted);
+    text-decoration: none;
+    font-size: 1.15rem;
+}
+.nav-icon:hover { background: #f1f5f9; color: var(--clbs-ink); }
+
+.nav-badge {
+    position: absolute;
+    top: 3px;
+    right: 3px;
+    min-width: 17px;
+    height: 17px;
+    padding: 0 4px;
+    border-radius: 999px;
+    background: #dc2626;
+    color: #fff;
+    font-size: .66rem;
+    line-height: 17px;
+    text-align: center;
+    font-weight: 700;
+}
+
+.nav-user {
+    display: flex;
+    align-items: center;
+    gap: .55rem;
+    padding: .3rem .6rem;
+    border-radius: 10px;
+    text-decoration: none;
+    color: var(--clbs-ink);
+}
+.nav-user:hover { background: #f1f5f9; }
+.nav-user strong { display: block; font-size: .86rem; line-height: 1.1; }
+.role-tag { display: block; font-size: .68rem; color: var(--clbs-muted); }
+
+.avatar {
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: var(--clbs-primary);
+    color: #fff;
+    font-size: .78rem;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+/* ==========================================================================
+   App shell: sidebar + content
+   ========================================================================== */
+
+.app-shell { display: flex; align-items: stretch; min-height: calc(100vh - 60px); }
+
+.app-sidebar {
+    width: 248px;
+    flex-shrink: 0;
+    background: var(--clbs-sidebar);
+    color: var(--clbs-sidebar-tx);
+}
+
+@media (min-width: 992px) {
+    .app-sidebar { position: sticky; top: 60px; height: calc(100vh - 60px); }
+}
+
+.sidebar-section {
+    padding: 1.15rem 1.25rem .5rem;
+    font-size: .68rem;
+    font-weight: 700;
+    letter-spacing: .09em;
+    text-transform: uppercase;
+    /* Was #64748b, which measured 3.75:1 against the sidebar — too low for
+       11px text. #94a3b8 measures 6.96:1 at the same weight and size. */
+    color: #94a3b8;
+}
+
+.sidebar-nav { padding: 0 .6rem; }
+
+/* Each link is a small card rather than bare text on a dark panel. The resting
+   tint is only 4% white, so the row reads as a distinct target without the
+   sidebar turning into a stack of buttons. The icon carries the colour, so the
+   eye has something to land on before it reads the label. */
+.sidebar-link {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: .7rem;
+    padding: .58rem .7rem .58rem 1.05rem;
+    margin-bottom: 2px;
+    border-radius: 9px;
+    background: rgba(255, 255, 255, .04);
+    color: var(--clbs-sidebar-tx);
+    text-decoration: none;
+    font-size: .9rem;
+    font-weight: 500;
+    transition: background .15s, color .15s, transform .15s;
+}
+
+/* The rail grows from the top edge on hover and sits full height when active,
+   so the current page is marked by shape as well as by colour. */
+.sidebar-link::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 50%;
+    width: 3px;
+    height: 0;
+    border-radius: 0 3px 3px 0;
+    background: var(--clbs-sidebar-rail);
+    transform: translateY(-50%);
+    transition: height .18s ease;
+}
+
+.sidebar-link i {
+    font-size: 1.05rem;
+    width: 20px;
+    text-align: center;
+    flex-shrink: 0;
+    color: var(--clbs-sidebar-ic);
+    transition: color .15s;
+}
+
+.sidebar-link:hover {
+    background: rgba(96, 165, 250, .16);
+    color: #fff;
+    transform: translateX(2px);
+}
+.sidebar-link:hover i { color: var(--clbs-sidebar-ic-h); }
+.sidebar-link:hover::before { height: 60%; }
+
+.sidebar-link:focus-visible {
+    outline: 2px solid var(--clbs-sidebar-focus);
+    outline-offset: 2px;
+}
+
+.sidebar-link.active {
+    background: var(--clbs-primary);
+    color: #fff;
+    font-weight: 600;
+    box-shadow: 0 2px 10px rgba(29, 78, 216, .45);
+}
+/* The active row keeps white on #1d4ed8, which measures 6.70:1. A gradient
+   towards #2563eb would drop that to 5.17:1, so the fill stays flat.
+   !important is required here and only here: the link markup also carries
+   Bootstrap's .text-primary utility, which sets colour with !important and
+   would otherwise paint the label Bootstrap blue (#0d6efd) on top of this
+   blue fill. That combination is 1.49:1, so the active label all but
+   disappears. Both the label and the icon are pinned to white so the current
+   page stays readable, and the other states keep their existing colours. */
+.sidebar-link.active,
+.sidebar-link.active span,
+.sidebar-link.active i { color: #fff !important; }
+.sidebar-link.active::before { height: 100%; }
+
+.sidebar-badge {
+    margin-left: auto;
+    min-width: 21px;
+    padding: 0 6px;
+    border-radius: 999px;
+    background: #dc2626;
+    color: #fff;
+    font-size: .7rem;
+    font-weight: 700;
+    text-align: center;
+}
+
+.sidebar-foot {
+    margin-top: auto;
+    padding: 1rem 1.1rem;
+    border-top: 1px solid rgba(255, 255, 255, .08);
+    font-size: .76rem;
+    color: #94a3b8;
+}
+.sidebar-foot-title { font-weight: 700; color: #cbd5e1; margin-bottom: .35rem; }
+.lan-url {
+    display: block;
+    margin-top: .35rem;
+    padding: .3rem .5rem;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, .08);
+    color: #7dd3fc;
+    font-size: .74rem;
+    word-break: break-all;
+}
+
+.app-main { flex: 1; min-width: 0; }
+.app-content { padding: 1.5rem; max-width: 1400px; }
+
+@media (max-width: 575.98px) {
+    .app-content { padding: 1rem .75rem; }
+}
+
+/* Offcanvas presentation on small screens */
+@media (max-width: 991.98px) {
+    .app-sidebar { background: var(--clbs-sidebar); }
+    .app-sidebar .offcanvas-header {
+        border-bottom: 1px solid rgba(255, 255, 255, .1);
+        color: #fff;
+    }
+}
+
+/* ==========================================================================
+   Page heading
+   ========================================================================== */
+
+.page-heading {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: .75rem;
+    margin-bottom: 1.35rem;
+}
+
+.page-title { font-size: 1.5rem; font-weight: 700; margin: 0; letter-spacing: -.01em; }
+.page-subtitle { margin: .15rem 0 0; color: var(--clbs-muted); font-size: .9rem; }
+.page-actions { display: flex; gap: .5rem; flex-wrap: wrap; }
+
+/* ==========================================================================
+   Cards
+   ========================================================================== */
+
+.card {
+    border: 1px solid var(--clbs-line);
+    border-radius: var(--clbs-radius);
+    box-shadow: var(--clbs-shadow);
+}
+
+.card-header {
+    background: #fff;
+    border-bottom: 1px solid var(--clbs-line);
+    font-weight: 600;
+    border-radius: var(--clbs-radius) var(--clbs-radius) 0 0 !important;
+}
+
+/* ==========================================================================
+   Stat tiles
+   ========================================================================== */
+
+.stat-card {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    height: 100%;
+    padding: 1.05rem 1.15rem;
+    background: #fff;
+    border: 1px solid var(--clbs-line);
+    border-radius: var(--clbs-radius);
+    box-shadow: var(--clbs-shadow);
+    text-decoration: none;
+    color: inherit;
+    transition: transform .15s, box-shadow .15s;
+}
+a.stat-card:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(15, 23, 42, .10); color: inherit; }
+
+.stat-icon {
+    display: grid;
+    place-items: center;
+    width: 46px;
+    height: 46px;
+    border-radius: 12px;
+    font-size: 1.35rem;
+    flex-shrink: 0;
+}
+.stat-value { font-size: 1.6rem; font-weight: 700; line-height: 1.1; }
+.stat-label { font-size: .8rem; color: var(--clbs-muted); }
+
+.tone-primary .stat-icon { background: #dbeafe; color: var(--clbs-primary); }
+.tone-success .stat-icon { background: #dcfce7; color: #15803d; }
+.tone-warning .stat-icon { background: #fef3c7; color: #b45309; }
+.tone-danger  .stat-icon { background: #fee2e2; color: #b91c1c; }
+.tone-info    .stat-icon { background: #cffafe; color: #0e7490; }
+
+/* ==========================================================================
+   Tables
+   ========================================================================== */
+
+.table { margin-bottom: 0; }
+
+.table > :not(caption) > * > * {
+    padding: .75rem .9rem;
+    border-bottom-color: var(--clbs-line);
+}
+
+.table thead th {
+    background: #f8fafc;
+    color: var(--clbs-muted);
+    font-size: .74rem;
+    font-weight: 700;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.table tbody tr:last-child td { border-bottom: 0; }
+.table tbody tr:hover { background: #f8fafc; }
+
+.table .ref { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: .84rem; }
+
+/* ==========================================================================
+   Empty state
+   ========================================================================== */
+
+.empty-state { padding: 3rem 1.5rem; text-align: center; }
+.empty-state i { font-size: 2.75rem; color: #cbd5e1; }
+.empty-state h3 { font-size: 1.02rem; font-weight: 600; margin: .8rem 0 .25rem; }
+.empty-state p { color: var(--clbs-muted); font-size: .88rem; margin: 0; }
+
+/* ==========================================================================
+   Auth pages
+   ========================================================================== */
+
+.auth-wrap { max-width: 460px; margin: 0 auto; }
+
+.auth-card { border: 1px solid var(--clbs-line); border-radius: 16px; box-shadow: 0 10px 30px rgba(15, 23, 42, .07); }
+
+.auth-head { text-align: center; padding: 1.9rem 1.5rem .5rem; }
+.auth-head .brand-mark { margin: 0 auto .85rem; width: 52px; height: 52px; font-size: 1.5rem; }
+.auth-head h1 { font-size: 1.28rem; font-weight: 700; margin-bottom: .2rem; }
+.auth-head p  { color: var(--clbs-muted); font-size: .88rem; margin: 0; }
+
+.auth-card .card-body { padding: 1.5rem; }
+
+.demo-creds {
+    margin-top: 1.15rem;
+    padding: .8rem .9rem;
+    border: 1px dashed #cbd5e1;
+    border-radius: 10px;
+    background: #f8fafc;
+    font-size: .8rem;
+    color: var(--clbs-muted);
+}
+.demo-creds strong { display: block; color: var(--clbs-ink); margin-bottom: .35rem; }
+.demo-creds code { color: var(--clbs-primary-d); }
+
+/* ==========================================================================
+   Public landing page
+   ========================================================================== */
+
+.hero {
+    background: linear-gradient(135deg, var(--clbs-primary-d), #2563eb);
+    color: #fff;
+    border-radius: 18px;
+    padding: 3rem 2rem;
+}
+
+.hero h1 { font-size: 2.1rem; font-weight: 700; letter-spacing: -.02em; }
+.hero p  { color: #dbeafe; max-width: 46ch; }
+
+.feature-card {
+    height: 100%;
+    padding: 1.35rem;
+    background: #fff;
+    border: 1px solid var(--clbs-line);
+    border-radius: var(--clbs-radius);
+    box-shadow: var(--clbs-shadow);
+}
+.feature-card i { font-size: 1.5rem; color: var(--clbs-primary); }
+.feature-card h3 { font-size: 1rem; font-weight: 600; margin: .6rem 0 .3rem; }
+.feature-card p  { color: var(--clbs-muted); font-size: .87rem; margin: 0; }
+
+.flow-step {
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+    padding: .7rem .9rem;
+    background: #fff;
+    border: 1px solid var(--clbs-line);
+    border-radius: 10px;
+    font-size: .87rem;
+    font-weight: 500;
+}
+.flow-step .num {
+    display: grid;
+    place-items: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--clbs-primary);
+    color: #fff;
+    font-size: .74rem;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+/* ==========================================================================
+   Misc
+   ========================================================================== */
+
+.flash-stack { margin-bottom: 1rem; }
+
+.app-footer {
+    padding: 1.1rem 1.5rem;
+    margin-top: auto;
+    background: #fff;
+    border-top: 1px solid var(--clbs-line);
+    color: var(--clbs-muted);
+    font-size: .82rem;
+}
+
+.plain-shell { min-height: calc(100vh - 60px); display: flex; flex-direction: column; }
+
+.form-label { font-size: .85rem; font-weight: 600; margin-bottom: .3rem; }
+.form-control, .form-select { border-color: #cbd5e1; border-radius: 9px; }
+.form-control:focus, .form-select:focus {
+    border-color: var(--clbs-primary);
+    box-shadow: 0 0 0 .2rem rgba(29, 78, 216, .12);
+}
+
+.btn { border-radius: 9px; font-weight: 600; }
+.btn-primary { background: var(--clbs-primary); border-color: var(--clbs-primary); }
+.btn-primary:hover { background: var(--clbs-primary-d); border-color: var(--clbs-primary-d); }
+
+.badge { font-weight: 600; letter-spacing: .01em; }
+
+.timeline { list-style: none; margin: 0; padding: 0; }
+.timeline li { position: relative; padding: 0 0 1.1rem 1.5rem; border-left: 2px solid var(--clbs-line); }
+.timeline li:last-child { border-left-color: transparent; padding-bottom: 0; }
+.timeline li::before {
+    content: "";
+    position: absolute;
+    left: -6px;
+    top: 4px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--clbs-primary);
+    border: 2px solid #fff;
+}
+.timeline .t-when { font-size: .74rem; color: var(--clbs-muted); }
+.timeline .t-what { font-size: .88rem; }

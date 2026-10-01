@@ -1,0 +1,32 @@
+# Computer Laboratory Booking System
+# Project-level security hardening. The folder structure intentionally keeps
+# admin/, user/ and auth/ as direct children of the docroot, so this file acts
+# as a second line of defence: it blocks the file types that must never be
+# served even if a folder-level .htaccess is ever removed.
+
+# Never serve raw SQL / schema / seed dumps.
+<FilesMatch "\.(sql|dump|bak|log|ini)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+# Never serve dotfiles such as .env or .gitignore.
+<FilesMatch "^\.">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+# Disable directory listing everywhere.
+Options -Indexes
+
+DirectoryIndex index.php index.html

@@ -1,0 +1,9 @@
+# Block all direct web access to this directory.
+# database/seed.php bootstraps the app and is a CLI script, not a web page.
+<IfModule mod_authz_core.c>
+    Require all denied
+</IfModule>
+<IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+</IfModule>
